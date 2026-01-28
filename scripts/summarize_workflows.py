@@ -81,37 +81,35 @@ async def main():
     turn_id = await session.send({"prompt": prompt})
     print(f"Prompt sent. Turn ID: {turn_id}")
     
-    # Now wait for the agent to actually respond with events
-    print("Waiting for agent to process and respond...")
-    done = asyncio.Event()
+    # Give the agent time to process and respond
+    print("Waiting for agent to process (30 seconds)...")
     received_content = False
+    completed = False
     
-    def track_completion(e):
-        nonlocal received_content
+    def track_events(e):
+        nonlocal received_content, completed
         event_type = e.type.value if hasattr(e.type, 'value') else str(e.type)
         
-        # Track if we received actual content
         if event_type == "assistant.message_delta":
             received_content = True
         
-        # Check for completion events
         if event_type in ["session.idle", "turn.done", "assistant.message.done"]:
             print(f"\n[COMPLETION EVENT: {event_type}]", flush=True)
-            done.set()
+            completed = True
     
-    session.on(track_completion)
+    session.on(track_events)
     
-    try:
-        # Wait up to 30 seconds for the agent to complete (reduced timeout)
-        await asyncio.wait_for(done.wait(), timeout=30)
-        print("\nAgent processing completed.")
-        if not received_content:
-            print("[WARNING] No content received from agent.", flush=True)
-    except asyncio.TimeoutError:
-        print("\n[TIMEOUT] Agent did not complete within 30 seconds.", flush=True)
-        print("[INFO] This likely means the agent/model is not properly configured or accessible.", flush=True)
-        if not received_content:
-            print("[WARNING] No content was received before timeout.", flush=True)
+    # Just wait for a fixed time period
+    await asyncio.sleep(30)
+    
+    if completed:
+        print("\nAgent processing completed successfully.")
+    elif received_content:
+        print("\nAgent sent content but no completion event received.")
+    else:
+        print("\n[WARNING] No response from agent within 30 seconds.")
+        print("[INFO] Agent mode may not be functional in GitHub Actions CI environment.")
+        print("[INFO] Consider running this script locally or using a different approach.")
 
     print("Destroying session...")
     await session.destroy()
