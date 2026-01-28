@@ -27,7 +27,7 @@ jobs:
       - name: Install Copilot SDK and dependencies
         run: pip install github-copilot-sdk
 
-      #- name: Run monitoring script
-      #  env:
-      #    GH_PAT: ${{ secrets.GH_PAT }}
-      #  run: python monitor_integration_workflows.py
+      - name: Run monitoring script
+        env:
+          GH_PAT: ${{ secrets.GH_PAT }}
+        run: python summarize_workflows.py
