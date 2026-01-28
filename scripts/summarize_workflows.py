@@ -24,12 +24,15 @@ async def main():
 
     # Create session with agent mode and custom tools (MCP tools auto-discovered)
     print("Creating session with agent mode...")
-    session = await client.create_session({
-        "model": "gpt-5", # Or your available model
-        "agent_mode": True,
-        "tools": [email_tool] # Add custom tool; MCP tools are built-in
-    })
-    print("Session created successfully.")
+    try:
+        session = await client.create_session({
+            "agent_mode": True,
+            "tools": [email_tool] # Add custom tool; MCP tools are built-in
+        })
+        print("Session created successfully.")
+    except Exception as e:
+        print(f"Error creating session: {e}", flush=True)
+        raise
 
     # Event handlers
     def on_event(event):
@@ -39,6 +42,10 @@ async def main():
         
         if event_type == "assistant.message_delta":
             print(event.data.content, end='', flush=True)
+        elif "error" in event_type.lower():
+            print(f"[ERROR EVENT: {event_type}]", flush=True)
+            if hasattr(event, 'data'):
+                print(f"  Error details: {event.data}", flush=True)
         elif "tool" in event_type.lower():
             # Try to detect tool-related events
             print(f"[TOOL EVENT DETECTED: {event_type}]", flush=True)
@@ -47,10 +54,10 @@ async def main():
                     print(f"  Tool: {event.data.tool_name}", flush=True)
                 if hasattr(event.data, 'arguments'):
                     print(f"  Arguments: {event.data.arguments}", flush=True)
-                # Print all data attributes for debugging
                 print(f"  Event data: {event.data}", flush=True)
-        else:
-            # Log other event types with their data for debugging
+        elif event_type not in ["pending_messages.modified"]:
+            # Log other event types (skip the noisy pending_messages ones)
+            print(f"  Event type: {event_type}", flush=True)
             if hasattr(event, 'data'):
                 print(f"  Data: {event.data}", flush=True)
 
@@ -95,13 +102,14 @@ async def main():
     session.on(track_completion)
     
     try:
-        # Wait up to 3 minutes for the agent to complete
-        await asyncio.wait_for(done.wait(), timeout=180)
+        # Wait up to 30 seconds for the agent to complete (reduced timeout)
+        await asyncio.wait_for(done.wait(), timeout=30)
         print("\nAgent processing completed.")
         if not received_content:
             print("[WARNING] No content received from agent.", flush=True)
     except asyncio.TimeoutError:
-        print("\n[TIMEOUT] Agent did not complete within 3 minutes.", flush=True)
+        print("\n[TIMEOUT] Agent did not complete within 30 seconds.", flush=True)
+        print("[INFO] This likely means the agent/model is not properly configured or accessible.", flush=True)
         if not received_content:
             print("[WARNING] No content was received before timeout.", flush=True)
 
