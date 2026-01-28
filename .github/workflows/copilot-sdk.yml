@@ -25,7 +25,7 @@ jobs:
           gh extension install github/gh-copilot
 
       - name: Install Copilot SDK and dependencies
-        run: pip install github-copilot-sdk smtplib # smtplib is stdlib, but for clarity
+        run: pip install github-copilot-sdk
 
       #- name: Run monitoring script
       #  env:
