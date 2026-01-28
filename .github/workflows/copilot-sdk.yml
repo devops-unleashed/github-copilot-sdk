@@ -18,16 +18,27 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install Copilot CLI
+      - name: Install GitHub Copilot CLI
         run: |
-          sudo apt update && sudo apt install -y gh
+          sudo apt update
+          sudo apt install -y gh   # already done, but keep for clarity
           echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
-          gh extension install github/gh-copilot
+
+          # Install new Copilot CLI (check https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli)
+          curl -fsSL https://gh.io/copilot-install | bash
 
       - name: Install Copilot SDK and dependencies
         run: pip install github-copilot-sdk
 
+      - name: Debug Copilot CLI
+        run: |
+          which copilot || echo "copilot NOT found in PATH"
+          copilot --version || echo "copilot --version failed"
+          copilot whoami || echo "whoami failed - auth issue?"        
+
       - name: Run monitoring script
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
-        run: python scripts/summarize_workflows.py
+        run: |
+          export PATH="$HOME/.local/bin:$PATH"
+          python scripts/summarize_workflows.py
