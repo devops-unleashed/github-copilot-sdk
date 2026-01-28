@@ -23,9 +23,6 @@ async def main():
     def on_event(event):
         if event.type.value == "assistant.message_delta":
             print(event.data.content, end='', flush=True)
-        elif isinstance(event, ToolCallEvent):
-            print(f"Agent calling tool: {event.data.tool_name}")
-            # SDK handles calling the handler and sending response back
 
     session.on(on_event)
 
