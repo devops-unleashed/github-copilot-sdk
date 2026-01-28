@@ -1,0 +1,33 @@
+name: Copilot SDK Workflow
+
+on:
+  workflow_dispatch: # Manual trigger for testing
+
+permissions:
+  contents: read
+
+jobs:
+  monitor-and-notify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Copilot CLI
+        run: |
+          sudo apt update && sudo apt install -y gh
+          echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
+          gh extension install github/gh-copilot
+
+      - name: Install Copilot SDK and dependencies
+        run: pip install github-copilot-sdk smtplib # smtplib is stdlib, but for clarity
+
+      #- name: Run monitoring script
+      #  env:
+      #    GH_PAT: ${{ secrets.GH_PAT }}
+      #  run: python monitor_integration_workflows.py
