@@ -41,6 +41,7 @@ jobs:
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          PYTHONUNBUFFERED: 1
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           echo "========== Starting monitoring script =========="

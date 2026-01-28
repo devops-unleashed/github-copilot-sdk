@@ -68,28 +68,21 @@ async def main():
     5. If there are committers, use the send_email tool to notify them with subject 'Workflow Failure in {{repo}}' and body including run ID, repo, and failure summary (from logs if needed).
     Only email if failures found. Summarize actions taken.
     """
-    await session.send({"prompt": prompt})
-    print("Prompt sent. Waiting for agent to complete...")
-
-    # Wait for completion with timeout
-    done = asyncio.Event()
-    
-    def check_completion(e):
-        event_type = e.type.value if hasattr(e.type, 'value') else str(e.type)
-        print(f"[Checking completion for: {event_type}]", flush=True)
-        # Check for various completion event types
-        if event_type in ["session.idle", "session.done", "turn.done", "assistant.message.done"]:
-            print(f"[COMPLETION EVENT RECEIVED: {event_type}]", flush=True)
-            done.set()
-    
-    session.on(check_completion)
     
     try:
-        # Wait up to 5 minutes for completion
-        await asyncio.wait_for(done.wait(), timeout=300)
-        print("\nAgent task completed.")
+        # Send with timeout to prevent hanging in CI
+        print("Sending prompt with 3-minute timeout...")
+        response = await asyncio.wait_for(
+            session.send({"prompt": prompt}),
+            timeout=180
+        )
+        print("\nAgent response received successfully.")
+        if response:
+            print(f"Response: {response}")
     except asyncio.TimeoutError:
-        print("\n[TIMEOUT] Agent did not complete within 5 minutes.", flush=True)
+        print("\n[TIMEOUT] Agent did not respond within 3 minutes.", flush=True)
+    except Exception as e:
+        print(f"\n[ERROR] Agent execution failed: {e}", flush=True)
 
     print("Destroying session...")
     await session.destroy()
