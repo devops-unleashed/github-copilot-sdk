@@ -32,9 +32,10 @@ jobs:
 
       - name: Debug Copilot CLI
         run: |
+          export PATH="$HOME/.local/bin:$PATH"
           which copilot || echo "copilot NOT found in PATH"
           copilot --version || echo "copilot --version failed"
-          copilot whoami || echo "whoami failed - auth issue?"        
+          copilot -p "who am I" || echo "copilot auth check failed"        
 
       - name: Run monitoring script
         env:
