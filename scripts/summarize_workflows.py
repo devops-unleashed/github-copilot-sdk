@@ -1,5 +1,11 @@
 import asyncio
 import json
+import sys
+from pathlib import Path
+
+# Add parent directory to path to import tools module
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 from copilot import CopilotClient
 from tools.send_email import email_tool
 
