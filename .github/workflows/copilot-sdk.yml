@@ -30,4 +30,4 @@ jobs:
       - name: Run monitoring script
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
-        run: python summarize_workflows.py
+        run: python scripts/summarize_workflows.py
