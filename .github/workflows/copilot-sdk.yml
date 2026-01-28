@@ -31,19 +31,26 @@ jobs:
         run: pip install github-copilot-sdk
 
       - name: Debug Copilot CLI
+        env:
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
           which copilot || echo "copilot NOT found in PATH"
           copilot --version || echo "copilot --version failed"
-          copilot -p "who am I" || echo "copilot auth check failed"        
+          echo "Testing copilot authentication..."
+          copilot -p "test auth" || echo "copilot auth check failed"        
 
       - name: Run monitoring script
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
+          GH_TOKEN: ${{ secrets.GH_PAT }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           PYTHONUNBUFFERED: 1
         run: |
           export PATH="$HOME/.local/bin:$PATH"
+          export GH_TOKEN="${{ secrets.GH_PAT }}"
+          export GITHUB_TOKEN="${{ secrets.GH_PAT }}"
           echo "========== Starting monitoring script =========="
           echo "PATH: $PATH"
           gh auth status || echo "gh auth check failed"
