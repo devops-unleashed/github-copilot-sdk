@@ -33,8 +33,26 @@ async def main():
 
     # Event handlers
     def on_event(event):
-        if event.type.value == "assistant.message_delta":
+        # Log all events for debugging
+        event_type = event.type.value if hasattr(event.type, 'value') else str(event.type)
+        print(f"\n[EVENT: {event_type}]", flush=True)
+        
+        if event_type == "assistant.message_delta":
             print(event.data.content, end='', flush=True)
+        elif "tool" in event_type.lower():
+            # Try to detect tool-related events
+            print(f"[TOOL EVENT DETECTED: {event_type}]", flush=True)
+            if hasattr(event, 'data'):
+                if hasattr(event.data, 'tool_name'):
+                    print(f"  Tool: {event.data.tool_name}", flush=True)
+                if hasattr(event.data, 'arguments'):
+                    print(f"  Arguments: {event.data.arguments}", flush=True)
+                # Print all data attributes for debugging
+                print(f"  Event data: {event.data}", flush=True)
+        else:
+            # Log other event types with their data for debugging
+            if hasattr(event, 'data'):
+                print(f"  Data: {event.data}", flush=True)
 
     session.on(on_event)
 
