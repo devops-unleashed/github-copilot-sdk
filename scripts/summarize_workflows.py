@@ -54,12 +54,20 @@ async def main():
                     print(f"  Tool: {event.data.tool_name}", flush=True)
                 if hasattr(event.data, 'arguments'):
                     print(f"  Arguments: {event.data.arguments}", flush=True)
-                print(f"  Event data: {event.data}", flush=True)
+                # Capture tool results
+                if hasattr(event.data, 'result'):
+                    print(f"  Result: {event.data.result}", flush=True)
+                if hasattr(event.data, 'output'):
+                    print(f"  Output: {event.data.output}", flush=True)
+                # Show full content for tool completions
+                if event_type == "tool.execution_complete" and hasattr(event.data, 'content'):
+                    print(f"  Content: {event.data.content}", flush=True)
         elif event_type not in ["pending_messages.modified"]:
             # Log other event types (skip the noisy pending_messages ones)
             print(f"  Event type: {event_type}", flush=True)
-            if hasattr(event, 'data'):
-                print(f"  Data: {event.data}", flush=True)
+            if hasattr(event, 'data') and hasattr(event.data, 'content') and event.data.content:
+                # Show content for message events
+                print(f"  Content: {event.data.content[:200]}...", flush=True)
 
     session.on(on_event)
 
