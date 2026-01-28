@@ -1,6 +1,6 @@
 import asyncio
 import json
-from copilot import CopilotClient, ToolCallEvent, ToolResponse
+from copilot import CopilotClient
 from tools.send_email import email_tool
 
 # Repo list
