@@ -71,11 +71,25 @@ async def main():
     await session.send({"prompt": prompt})
     print("Prompt sent. Waiting for agent to complete...")
 
-    # Wait for completion
+    # Wait for completion with timeout
     done = asyncio.Event()
-    session.on(lambda e: done.set() if e.type.value == "session.idle" else None)
-    await done.wait()
-    print("\nAgent task completed.")
+    
+    def check_completion(e):
+        event_type = e.type.value if hasattr(e.type, 'value') else str(e.type)
+        print(f"[Checking completion for: {event_type}]", flush=True)
+        # Check for various completion event types
+        if event_type in ["session.idle", "session.done", "turn.done", "assistant.message.done"]:
+            print(f"[COMPLETION EVENT RECEIVED: {event_type}]", flush=True)
+            done.set()
+    
+    session.on(check_completion)
+    
+    try:
+        # Wait up to 5 minutes for completion
+        await asyncio.wait_for(done.wait(), timeout=300)
+        print("\nAgent task completed.")
+    except asyncio.TimeoutError:
+        print("\n[TIMEOUT] Agent did not complete within 5 minutes.", flush=True)
 
     print("Destroying session...")
     await session.destroy()
