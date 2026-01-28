@@ -40,7 +40,7 @@ async def main():
     2. For each workflow, list workflow runs from the last 24 hours with status 'failure'.
     3. For each failed run, get run details, find the previous successful run (by listing runs and filtering), and list commits between the successful run's head_sha and the failed run's head_sha.
     4. Extract unique committer emails from those commits (use author.email if available, skip noreply).
-    5. If there are committers, use the send_email tool to notify them with subject 'Workflow Failure in {repo}' and body including run ID, repo, and failure summary (from logs if needed).
+    5. If there are committers, use the send_email tool to notify them with subject 'Workflow Failure in {{repo}}' and body including run ID, repo, and failure summary (from logs if needed).
     Only email if failures found. Summarize actions taken.
     """
     await session.send({"prompt": prompt})
