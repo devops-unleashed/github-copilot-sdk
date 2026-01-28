@@ -52,16 +52,21 @@ async def main():
             if hasattr(event, 'data'):
                 if hasattr(event.data, 'tool_name'):
                     print(f"  Tool: {event.data.tool_name}", flush=True)
+                    # Special handling for send_email tool
+                    if event.data.tool_name == "send_email":
+                        print(f"  [send_email TOOL INVOKED]", flush=True)
                 if hasattr(event.data, 'arguments'):
-                    print(f"  Arguments: {event.data.arguments}", flush=True)
-                # Capture tool results
+                    print(f"  Arguments: {json.dumps(event.data.arguments, indent=2)}", flush=True)
+                # Capture tool results - try all possible fields
                 if hasattr(event.data, 'result'):
                     print(f"  Result: {event.data.result}", flush=True)
                 if hasattr(event.data, 'output'):
                     print(f"  Output: {event.data.output}", flush=True)
-                # Show full content for tool completions
-                if event_type == "tool.execution_complete" and hasattr(event.data, 'content'):
-                    print(f"  Content: {event.data.content}", flush=True)
+                if hasattr(event.data, 'success'):
+                    print(f"  Success: {event.data.success}", flush=True)
+                # Show full data for tool events
+                if event_type in ["tool.execution_complete", "tool.execution_partial_result"]:
+                    print(f"  Full event data: {event.data}", flush=True)
         elif event_type not in ["pending_messages.modified"]:
             # Log other event types (skip the noisy pending_messages ones)
             print(f"  Event type: {event_type}", flush=True)
