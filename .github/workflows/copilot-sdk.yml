@@ -32,10 +32,14 @@ jobs:
 
       - name: Debug Copilot CLI
         env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
+          export COPILOT_GITHUB_TOKEN="${{ secrets.GH_PAT }}"
+          export GITHUB_TOKEN="${{ secrets.GH_PAT }}"
+          export GH_TOKEN="${{ secrets.GH_PAT }}"
           which copilot || echo "copilot NOT found in PATH"
           copilot --version || echo "copilot --version failed"
           echo "Testing copilot authentication..."
@@ -43,12 +47,14 @@ jobs:
 
       - name: Run monitoring script
         env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           GH_PAT: ${{ secrets.GH_PAT }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           PYTHONUNBUFFERED: 1
         run: |
           export PATH="$HOME/.local/bin:$PATH"
+          export COPILOT_GITHUB_TOKEN="${{ secrets.GH_PAT }}"
           export GH_TOKEN="${{ secrets.GH_PAT }}"
           export GITHUB_TOKEN="${{ secrets.GH_PAT }}"
           echo "========== Starting monitoring script =========="
