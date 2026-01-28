@@ -69,20 +69,41 @@ async def main():
     Only email if failures found. Summarize actions taken.
     """
     
+    # Send the prompt (returns turn ID immediately)
+    print("Sending prompt...")
+    turn_id = await session.send({"prompt": prompt})
+    print(f"Prompt sent. Turn ID: {turn_id}")
+    
+    # Now wait for the agent to actually respond with events
+    print("Waiting for agent to process and respond...")
+    done = asyncio.Event()
+    received_content = False
+    
+    def track_completion(e):
+        nonlocal received_content
+        event_type = e.type.value if hasattr(e.type, 'value') else str(e.type)
+        
+        # Track if we received actual content
+        if event_type == "assistant.message_delta":
+            received_content = True
+        
+        # Check for completion events
+        if event_type in ["session.idle", "turn.done", "assistant.message.done"]:
+            print(f"\n[COMPLETION EVENT: {event_type}]", flush=True)
+            done.set()
+    
+    session.on(track_completion)
+    
     try:
-        # Send with timeout to prevent hanging in CI
-        print("Sending prompt with 3-minute timeout...")
-        response = await asyncio.wait_for(
-            session.send({"prompt": prompt}),
-            timeout=180
-        )
-        print("\nAgent response received successfully.")
-        if response:
-            print(f"Response: {response}")
+        # Wait up to 3 minutes for the agent to complete
+        await asyncio.wait_for(done.wait(), timeout=180)
+        print("\nAgent processing completed.")
+        if not received_content:
+            print("[WARNING] No content received from agent.", flush=True)
     except asyncio.TimeoutError:
-        print("\n[TIMEOUT] Agent did not respond within 3 minutes.", flush=True)
-    except Exception as e:
-        print(f"\n[ERROR] Agent execution failed: {e}", flush=True)
+        print("\n[TIMEOUT] Agent did not complete within 3 minutes.", flush=True)
+        if not received_content:
+            print("[WARNING] No content was received before timeout.", flush=True)
 
     print("Destroying session...")
     await session.destroy()
