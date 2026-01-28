@@ -67,13 +67,19 @@ async def main():
     print(f"\nSending prompt to monitor {len(REPOS)} repositories...")
     prompt = f"""
     Monitor these repositories: {', '.join(REPOS)}.
-    For each repo:
+    
+    IMPORTANT: At the end, ALWAYS call the send_email tool with a test message, even if there are no failures.
+    
+    Tasks:
     1. Use MCP tools to list workflows.
     2. For each workflow, list workflow runs from the last 24 hours with status 'failure'.
     3. For each failed run, get run details, find the previous successful run (by listing runs and filtering), and list commits between the successful run's head_sha and the failed run's head_sha.
     4. Extract unique committer emails from those commits (use author.email if available, skip noreply).
-    5. If there are committers, use the send_email tool to notify them with subject 'Workflow Failure in {{repo}}' and body including run ID, repo, and failure summary (from logs if needed).
-    Only email if failures found. Summarize actions taken.
+    5. Call the send_email tool to notify:
+       - If there are failures: notify committers with subject 'Workflow Failure in {{repo}}' and body including run ID, repo, and failure summary
+       - If NO failures found: call send_email with recipients=['test@example.com'], subject='Workflow Monitor Test - No Failures', body='Test run completed. No workflow failures found in the last 24 hours.'
+    
+    You MUST call send_email in either case. Summarize actions taken.
     """
     
     # Send the prompt (returns turn ID immediately)
