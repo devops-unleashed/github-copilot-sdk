@@ -81,35 +81,46 @@ async def main():
     turn_id = await session.send({"prompt": prompt})
     print(f"Prompt sent. Turn ID: {turn_id}")
     
-    # Give the agent time to process and respond
-    print("Waiting for agent to process (30 seconds)...")
+    # Give the agent time to process and respond (increased for complex multi-step tasks)
+    print("Waiting for agent to complete (up to 3 minutes)...")
     received_content = False
     completed = False
+    send_email_called = False
     
     def track_events(e):
-        nonlocal received_content, completed
+        nonlocal received_content, completed, send_email_called
         event_type = e.type.value if hasattr(e.type, 'value') else str(e.type)
         
         if event_type == "assistant.message_delta":
             received_content = True
         
+        # Detect if send_email tool was called
+        if event_type == "tool.execution_start" and hasattr(e, 'data'):
+            if hasattr(e.data, 'tool_name') and e.data.tool_name == "send_email":
+                send_email_called = True
+                print(f"\n[✓] send_email tool called!", flush=True)
+        
+        # Look for final completion after all turns
         if event_type in ["session.idle", "turn.done", "assistant.message.done"]:
-            print(f"\n[COMPLETION EVENT: {event_type}]", flush=True)
+            print(f"\n[Potential completion event: {event_type}]", flush=True)
             completed = True
     
     session.on(track_events)
     
-    # Just wait for a fixed time period
-    await asyncio.sleep(30)
+    # Wait longer for multi-step agent tasks (3 minutes)
+    await asyncio.sleep(180)
     
-    if completed:
-        print("\nAgent processing completed successfully.")
+    print(f"\n{'='*60}")
+    if send_email_called:
+        print("✓ SUCCESS: send_email tool was called by the agent")
+    elif completed:
+        print("Agent processing completed but send_email was not called.")
+        print("This may mean no failures were found or no valid committer emails.")
     elif received_content:
-        print("\nAgent sent content but no completion event received.")
+        print("Agent sent content but processing may still be ongoing.")
     else:
-        print("\n[WARNING] No response from agent within 30 seconds.")
-        print("[INFO] Agent mode may not be functional in GitHub Actions CI environment.")
-        print("[INFO] Consider running this script locally or using a different approach.")
+        print("No response from agent - this should not happen now that auth is working.")
+    print(f"{'='*60}")
 
     print("Destroying session...")
     await session.destroy()
