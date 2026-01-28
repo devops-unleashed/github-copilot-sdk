@@ -39,6 +39,8 @@ jobs:
       - name: Run monitoring script
         env:
           GH_PAT: ${{ secrets.GH_PAT }}
+          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
         run: |
           export PATH="$HOME/.local/bin:$PATH"
+          gh auth status || echo "gh auth check failed"
           python scripts/summarize_workflows.py
