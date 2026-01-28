@@ -15,15 +15,21 @@ REPOS = [
 ]
 
 async def main():
+    print("Initializing Copilot client...")
     client = CopilotClient()
+    
+    print("Starting Copilot client...")
     await client.start()
+    print("Copilot client started successfully.")
 
     # Create session with agent mode and custom tools (MCP tools auto-discovered)
+    print("Creating session with agent mode...")
     session = await client.create_session({
         "model": "gpt-5", # Or your available model
         "agent_mode": True,
         "tools": [email_tool] # Add custom tool; MCP tools are built-in
     })
+    print("Session created successfully.")
 
     # Event handlers
     def on_event(event):
@@ -33,6 +39,7 @@ async def main():
     session.on(on_event)
 
     # Agent prompt for multi-repo query and actions
+    print(f"\nSending prompt to monitor {len(REPOS)} repositories...")
     prompt = f"""
     Monitor these repositories: {', '.join(REPOS)}.
     For each repo:
@@ -44,13 +51,18 @@ async def main():
     Only email if failures found. Summarize actions taken.
     """
     await session.send({"prompt": prompt})
+    print("Prompt sent. Waiting for agent to complete...")
 
     # Wait for completion
     done = asyncio.Event()
     session.on(lambda e: done.set() if e.type.value == "session.idle" else None)
     await done.wait()
+    print("\nAgent task completed.")
 
+    print("Destroying session...")
     await session.destroy()
+    print("Stopping client...")
     await client.stop()
+    print("Script finished successfully.")
 
 asyncio.run(main())
