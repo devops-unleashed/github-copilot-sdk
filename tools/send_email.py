@@ -9,9 +9,12 @@ def send_email_handler(args):
         print("[send_email_handler] Starting execution...", flush=True)
         print(f"[send_email_handler] Received args: {args}", flush=True)
         
-        recipients = args.get("recipients", []) # List of emails
-        subject = args.get("subject", "Workflow Failure Notification")
-        body = args.get("body", "A scheduled integration workflow has failed. Please check the repo.")
+        # SDK wraps the actual tool arguments in an 'arguments' key
+        tool_args = args.get("arguments", args)
+        
+        recipients = tool_args.get("recipients", []) # List of emails
+        subject = tool_args.get("subject", "Workflow Failure Notification")
+        body = tool_args.get("body", "A scheduled integration workflow has failed. Please check the repo.")
 
         if not recipients:
             error_msg = "No recipients provided."
