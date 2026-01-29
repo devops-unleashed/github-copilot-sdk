@@ -1,7 +1,9 @@
-name: Copilot SDK Workflow
+name: Copilot SDK Workflow Monitor
 
 on:
   workflow_dispatch: # Manual trigger for testing
+  schedule:
+    - cron: '0 */6 * * *' # Run every 6 hours (optional)
 
 permissions:
   contents: read
@@ -9,8 +11,9 @@ permissions:
 jobs:
   monitor-and-notify:
     runs-on: ubuntu-latest
+    
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Python
@@ -18,48 +21,29 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install GitHub Copilot CLI
+      - name: Install GitHub CLI and Copilot CLI
         run: |
-          sudo apt update
-          sudo apt install -y gh   # already done, but keep for clarity
+          # Authenticate GitHub CLI
           echo "${{ secrets.GH_PAT }}" | gh auth login --with-token
-
-          # Install new Copilot CLI (check https://docs.github.com/en/copilot/how-tos/set-up/install-copilot-cli)
+          
+          # Install Copilot CLI
           curl -fsSL https://gh.io/copilot-install | bash
 
-      - name: Install Copilot SDK and dependencies
+      - name: Install Copilot SDK
         run: pip install github-copilot-sdk
 
-      - name: Debug Copilot CLI
+      - name: Run workflow monitoring script
         env:
+          # Set all required authentication tokens
           COPILOT_GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           GITHUB_TOKEN: ${{ secrets.GH_PAT }}
           GH_TOKEN: ${{ secrets.GH_PAT }}
+          PYTHONUNBUFFERED: 1  # Ensure real-time log output
         run: |
+          # Add Copilot CLI to PATH
           export PATH="$HOME/.local/bin:$PATH"
-          export COPILOT_GITHUB_TOKEN="${{ secrets.GH_PAT }}"
-          export GITHUB_TOKEN="${{ secrets.GH_PAT }}"
-          export GH_TOKEN="${{ secrets.GH_PAT }}"
-          which copilot || echo "copilot NOT found in PATH"
-          copilot --version || echo "copilot --version failed"
-          echo "Testing copilot authentication..."
-          copilot -p "test auth" || echo "copilot auth check failed"        
-
-      - name: Run monitoring script
-        env:
-          COPILOT_GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          GH_PAT: ${{ secrets.GH_PAT }}
-          GH_TOKEN: ${{ secrets.GH_PAT }}
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          PYTHONUNBUFFERED: 1
-        run: |
-          export PATH="$HOME/.local/bin:$PATH"
-          export COPILOT_GITHUB_TOKEN="${{ secrets.GH_PAT }}"
-          export GH_TOKEN="${{ secrets.GH_PAT }}"
-          export GITHUB_TOKEN="${{ secrets.GH_PAT }}"
-          echo "========== Starting monitoring script =========="
-          echo "PATH: $PATH"
-          gh auth status || echo "gh auth check failed"
-          echo "Running Python script..."
+          
+          # Run the monitoring script
+          echo "========== Starting workflow monitor =========="
           python -u scripts/summarize_workflows.py
-          echo "========== Script completed =========="
+          echo "========== Monitoring completed =========="

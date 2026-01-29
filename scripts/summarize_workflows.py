@@ -1,40 +1,28 @@
 import asyncio
-import json
 import sys
 from pathlib import Path
 
-# Add parent directory to path to import tools module
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from copilot import CopilotClient
 from tools.send_email import email_tool
 
-# Repo list
-REPOS = [
-    "devops-unleashed/workflow-example-powershell"
-]
+# Repositories to monitor
+REPOS = ["devops-unleashed/workflow-example-powershell"]
+
 
 async def main():
+    # Initialize client
     print("Initializing Copilot client...")
     client = CopilotClient()
-    
-    print("Starting Copilot client...")
     await client.start()
-    print("Copilot client started successfully.")
+    print("Copilot client started.")
 
-    # Create session with agent mode and custom tools (MCP tools auto-discovered)
-    print("Creating session with agent mode...")
-    try:
-        session = await client.create_session({
-            "agent_mode": True,
-            "tools": [email_tool] # Add custom tool; MCP tools are built-in
-        })
-        print("Session created successfully.")
-    except Exception as e:
-        print(f"Error creating session: {e}", flush=True)
-        raise
+    # Create session with agent mode and custom tool
+    session = await client.create_session({"agent_mode": True, "tools": [email_tool]})
+    print("Session created.")
 
-    # Event handlers
+    # Event handler
     def on_event(event):
         event_type = event.type.value if hasattr(event.type, 'value') else str(event.type)
         
@@ -42,21 +30,16 @@ async def main():
             print(event.data.content, end='', flush=True)
         elif "error" in event_type.lower():
             print(f"\n[ERROR: {event_type}]", flush=True)
-            if hasattr(event, 'data'):
-                print(f"  {event.data}", flush=True)
-        elif event_type == "tool.execution_start":
-            if hasattr(event, 'data') and hasattr(event.data, 'tool_name'):
-                print(f"\n[Tool: {event.data.tool_name}]", flush=True)
+        elif event_type == "tool.execution_start" and hasattr(event.data, 'tool_name'):
+            print(f"\n[Tool: {event.data.tool_name}]", flush=True)
         elif event_type == "tool.execution_complete":
-            if hasattr(event, 'data'):
-                success = getattr(event.data, 'success', None)
-                status = "✓" if success else "✗"
-                print(f"[Tool complete: {status}]", flush=True)
+            status = "✓" if getattr(event.data, 'success', None) else "✗"
+            print(f"[Tool complete: {status}]", flush=True)
 
     session.on(on_event)
 
-    # Agent prompt for multi-repo query and actions
-    print(f"\nSending prompt to monitor {len(REPOS)} repositories...")
+    # Send agent prompt
+    print(f"\nMonitoring {len(REPOS)} repositories...")
     prompt = f"""
     Monitor these repositories: {', '.join(REPOS)}.
     
@@ -68,62 +51,42 @@ async def main():
     3. For each failed run, get run details, find the previous successful run (by listing runs and filtering), and list commits between the successful run's head_sha and the failed run's head_sha.
     4. Extract unique committer emails from those commits (use author.email if available, skip noreply).
     5. Call the send_email tool to notify:
-       - If there are failures: notify committers with subject 'Workflow Failure in {{repo}}' and body including run ID, repo, and failure summary
+       - If there are failures: notify committers with subject 'Workflow Failure in {{{{repo}}}}' and body including run ID, repo, and failure summary
        - If NO failures found: call send_email with recipients=['test@example.com'], subject='Workflow Monitor Test - No Failures', body='Test run completed. No workflow failures found in the last 24 hours.'
     
     You MUST call send_email in either case. Summarize actions taken.
     """
     
-    # Send the prompt (returns turn ID immediately)
-    print("Sending prompt...")
     turn_id = await session.send({"prompt": prompt})
     print(f"Prompt sent. Turn ID: {turn_id}")
     
-    # Give the agent time to process and respond (increased for complex multi-step tasks)
-    print("Waiting for agent to complete (up to 3 minutes)...")
-    received_content = False
-    completed = False
+    # Track completion
     send_email_called = False
     
     def track_events(e):
-        nonlocal received_content, completed, send_email_called
+        nonlocal send_email_called
         event_type = e.type.value if hasattr(e.type, 'value') else str(e.type)
-        
-        if event_type == "assistant.message_delta":
-            received_content = True
-        
-        # Detect if send_email tool was called
-        if event_type == "tool.execution_start" and hasattr(e, 'data'):
-            if hasattr(e.data, 'tool_name') and e.data.tool_name == "send_email":
+        if event_type == "tool.execution_start" and hasattr(e.data, 'tool_name'):
+            if e.data.tool_name == "send_email":
                 send_email_called = True
-                print(f"\n[✓] send_email tool called!", flush=True)
-        
-        # Look for final completion after all turns
-        if event_type in ["session.idle", "turn.done", "assistant.message.done"]:
-            print(f"\n[Potential completion event: {event_type}]", flush=True)
-            completed = True
+                print(f"\n[✓] send_email called!", flush=True)
     
     session.on(track_events)
     
-    # Wait longer for multi-step agent tasks (3 minutes)
+    # Wait for completion (3 minutes)
+    print("Waiting for agent (up to 3 minutes)...")
     await asyncio.sleep(180)
     
+    # Report status
     print(f"\n{'='*60}")
-    if send_email_called:
-        print("✓ SUCCESS: send_email tool was called by the agent")
-    elif completed:
-        print("Agent processing completed but send_email was not called.")
-        print("This may mean no failures were found or no valid committer emails.")
-    elif received_content:
-        print("Agent sent content but processing may still be ongoing.")
-    else:
-        print("No response from agent - this should not happen now that auth is working.")
+    print("✓ SUCCESS" if send_email_called else "⚠ WARNING: send_email not called")
     print(f"{'='*60}")
 
-    print("Destroying session...")
+    # Cleanup
     await session.destroy()
-    print("Stopping client...")
     await client.stop()
-    print("Script finished successfully.")
+    print("Done.")
 
-asyncio.run(main())
+
+if __name__ == "__main__":
+    asyncio.run(main())

@@ -1,35 +1,29 @@
 from copilot import Tool
-import sys
 import traceback
 
 
 def send_email_handler(args):
-    """Handler function that sends email notifications."""
     try:
-        # SDK wraps the actual tool arguments in an 'arguments' key
+        # Extract arguments from SDK wrapper
         tool_args = args.get("arguments", args)
-        
-        recipients = tool_args.get("recipients", []) # List of emails
+        recipients = tool_args.get("recipients", [])
         subject = tool_args.get("subject", "Workflow Failure Notification")
-        body = tool_args.get("body", "A scheduled integration workflow has failed. Please check the repo.")
+        body = tool_args.get("body", "A workflow has failed.")
 
         if not recipients:
-            error_msg = "No recipients provided."
-            print(f"[send_email] ERROR: {error_msg}", flush=True)
-            return {"status": "error", "message": error_msg}
+            return {"status": "error", "message": "No recipients provided."}
 
+        # Print email to logs
         output = f"\n{'='*60}\n[EMAIL NOTIFICATION]\nTo: {', '.join(recipients)}\nSubject: {subject}\n\n{body}\n{'='*60}\n"
         print(output, flush=True)
         return output
         
     except Exception as ex:
-        error_msg = f"send_email exception: {ex}"
-        print(error_msg, flush=True)
-        print(traceback.format_exc(), flush=True)
-        return {"status": "error", "message": error_msg}
+        print(f"send_email error: {ex}", flush=True)
+        return {"status": "error", "message": str(ex)}
 
 
-# Define the custom tool schema for the agent
+# Tool configuration
 email_tool = Tool(
     name="send_email",
     description="Send an email notification to a list of committers about a workflow failure.",
