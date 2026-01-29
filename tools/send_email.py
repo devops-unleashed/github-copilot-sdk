@@ -9,10 +9,17 @@ def send_email_handler(args):
     if not recipients:
         return {"status": "error", "message": "No recipients provided."}
 
-    output = f"[EMAIL OUTPUT]\nTo: {', '.join(recipients)}\nSubject: {subject}\n\n{body}"
+    output = f"[EMAIL OUTPUT FROM TOOL]\nTo: {', '.join(recipients)}\nSubject: {subject}\n\n{body}"
     print(output)
 
-    return {"status": "success", "message": output}
+    # Return structured fields so MCP/tool events include the email body
+    return {
+        "status": "success",
+        "message": output,
+        "output": output,
+        "result": output,
+        "success": True,
+    }
 
 
 # Define the custom tool schema for the agent
