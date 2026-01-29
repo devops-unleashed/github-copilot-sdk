@@ -34,10 +34,7 @@ jobs:
 
       - name: Run workflow monitoring script
         env:
-          # Set all required authentication tokens
-          COPILOT_GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          GITHUB_TOKEN: ${{ secrets.GH_PAT }}
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+          COPILOT_GITHUB_TOKEN: ${{ secrets.GH_PAT }}  # Required by Copilot SDK
           PYTHONUNBUFFERED: 1  # Ensure real-time log output
         run: |
           # Add Copilot CLI to PATH
