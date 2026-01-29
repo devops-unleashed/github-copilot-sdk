@@ -4,11 +4,8 @@ import traceback
 
 
 def send_email_handler(args):
-    """Handler function that sends email notifications. Wrapped with comprehensive error handling."""
+    """Handler function that sends email notifications."""
     try:
-        print("[send_email_handler] Starting execution...", flush=True)
-        print(f"[send_email_handler] Received args: {args}", flush=True)
-        
         # SDK wraps the actual tool arguments in an 'arguments' key
         tool_args = args.get("arguments", args)
         
@@ -18,24 +15,18 @@ def send_email_handler(args):
 
         if not recipients:
             error_msg = "No recipients provided."
-            print(f"[send_email_handler] ERROR: {error_msg}", flush=True)
+            print(f"[send_email] ERROR: {error_msg}", flush=True)
             return {"status": "error", "message": error_msg}
 
-        output = f"[EMAIL OUTPUT FROM TOOL]\nTo: {', '.join(recipients)}\nSubject: {subject}\n\n{body}"
+        output = f"\n{'='*60}\n[EMAIL NOTIFICATION]\nTo: {', '.join(recipients)}\nSubject: {subject}\n\n{body}\n{'='*60}\n"
         print(output, flush=True)
-        print(f"\n{'='*60}", flush=True)
-        print("send_email tool executed successfully", flush=True)
-        print(f"{'='*60}\n", flush=True)
-
-        # Tool handlers should return a simple string (not dict) for MCP compatibility
-        print(f"[send_email_handler] Returning output string", flush=True)
         return output
         
     except Exception as ex:
-        error_msg = f"Exception in send_email_handler: {ex}"
-        print(f"[send_email_handler] EXCEPTION: {error_msg}", flush=True)
-        print(f"[send_email_handler] Traceback:\n{traceback.format_exc()}", flush=True)
-        return {"status": "error", "message": error_msg, "exception": str(ex)}
+        error_msg = f"send_email exception: {ex}"
+        print(error_msg, flush=True)
+        print(traceback.format_exc(), flush=True)
+        return {"status": "error", "message": error_msg}
 
 
 # Define the custom tool schema for the agent

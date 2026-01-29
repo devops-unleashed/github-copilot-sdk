@@ -36,60 +36,22 @@ async def main():
 
     # Event handlers
     def on_event(event):
-        # Log all events for debugging
         event_type = event.type.value if hasattr(event.type, 'value') else str(event.type)
-        print(f"\n[EVENT: {event_type}]", flush=True)
         
         if event_type == "assistant.message_delta":
             print(event.data.content, end='', flush=True)
         elif "error" in event_type.lower():
-            print(f"[ERROR EVENT: {event_type}]", flush=True)
+            print(f"\n[ERROR: {event_type}]", flush=True)
             if hasattr(event, 'data'):
-                print(f"  Error details: {event.data}", flush=True)
-        elif "tool" in event_type.lower():
-            # Try to detect tool-related events
-            print(f"[TOOL EVENT DETECTED: {event_type}]", flush=True)
+                print(f"  {event.data}", flush=True)
+        elif event_type == "tool.execution_start":
+            if hasattr(event, 'data') and hasattr(event.data, 'tool_name'):
+                print(f"\n[Tool: {event.data.tool_name}]", flush=True)
+        elif event_type == "tool.execution_complete":
             if hasattr(event, 'data'):
-                # Build a structured view of the tool event so output is easy to read in logs
-                try:
-                    d = event.data
-                    structured = {}
-                    if hasattr(d, 'tool_name'):
-                        structured['tool_name'] = d.tool_name
-                        if d.tool_name == "send_email":
-                            structured['note'] = '[send_email TOOL INVOKED]'
-                    if hasattr(d, 'arguments'):
-                        structured['arguments'] = d.arguments
-                    if hasattr(d, 'result'):
-                        structured['result'] = d.result
-                    if hasattr(d, 'output'):
-                        structured['output'] = d.output
-                    if hasattr(d, 'success'):
-                        structured['success'] = d.success
-                    
-                    # For execution_complete events, try to extract return value from all possible fields
-                    if event_type == "tool.execution_complete":
-                        print("\n[ATTEMPTING TO EXTRACT TOOL RETURN VALUE]", flush=True)
-                        # Check all attributes of event.data for return value
-                        for attr in dir(d):
-                            if not attr.startswith('_'):
-                                val = getattr(d, attr, None)
-                                if val is not None and attr not in ['tool_name', 'arguments']:
-                                    print(f"  {attr}: {val}", flush=True)
-                                    structured[attr] = val
-                    
-                    # Always include a raw repr as a fallback
-                    structured['raw'] = repr(d)[:500]  # Truncate for readability
-                    print("  Tool event data:\n" + json.dumps(structured, default=lambda o: str(o), indent=2), flush=True)
-                except Exception as ex:
-                    print(f"  Failed to format tool event data: {ex}", flush=True)
-                    print(f"  Raw data: {event.data}", flush=True)
-        elif event_type not in ["pending_messages.modified"]:
-            # Log other event types (skip the noisy pending_messages ones)
-            print(f"  Event type: {event_type}", flush=True)
-            if hasattr(event, 'data') and hasattr(event.data, 'content') and event.data.content:
-                # Show content for message events
-                print(f"  Content: {event.data.content[:200]}...", flush=True)
+                success = getattr(event.data, 'success', None)
+                status = "✓" if success else "✗"
+                print(f"[Tool complete: {status}]", flush=True)
 
     session.on(on_event)
 
