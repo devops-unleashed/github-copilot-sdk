@@ -31,10 +31,25 @@ async def main():
         elif "error" in event_type.lower():
             print(f"\n[ERROR: {event_type}]", flush=True)
         elif event_type == "tool.execution_start" and hasattr(event.data, 'tool_name'):
-            print(f"\n[Tool: {event.data.tool_name}]", flush=True)
+            tool_name = event.data.tool_name
+            # Show tool purpose for better visibility
+            args = getattr(event.data, 'arguments', {})
+            if tool_name == "send_email":
+                recipients = args.get('recipients', [])
+                print(f"\n[Sending email to {len(recipients)} recipient(s)]", flush=True)
+            elif tool_name in ["github-mcp-server-list_workflow_runs", "list_workflow_runs"]:
+                repo = args.get('repo', args.get('owner', ''))
+                print(f"\n[Checking workflow runs for {repo}]", flush=True)
+            elif tool_name in ["github-mcp-server-list_workflows", "list_workflows"]:
+                repo = args.get('repo', args.get('owner', ''))
+                print(f"\n[Listing workflows for {repo}]", flush=True)
+            elif tool_name in ["github-mcp-server-list_commits", "list_commits"]:
+                print(f"\n[Fetching commit history]", flush=True)
+            else:
+                print(f"\n[Executing: {tool_name}]", flush=True)
         elif event_type == "tool.execution_complete":
             status = "✓" if getattr(event.data, 'success', None) else "✗"
-            print(f"[Tool complete: {status}]", flush=True)
+            print(f" {status}", flush=True)
 
     session.on(on_event)
 
