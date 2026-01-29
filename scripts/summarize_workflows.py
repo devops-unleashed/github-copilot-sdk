@@ -66,8 +66,20 @@ async def main():
                         structured['output'] = d.output
                     if hasattr(d, 'success'):
                         structured['success'] = d.success
+                    
+                    # For execution_complete events, try to extract return value from all possible fields
+                    if event_type == "tool.execution_complete":
+                        print("\n[ATTEMPTING TO EXTRACT TOOL RETURN VALUE]", flush=True)
+                        # Check all attributes of event.data for return value
+                        for attr in dir(d):
+                            if not attr.startswith('_'):
+                                val = getattr(d, attr, None)
+                                if val is not None and attr not in ['tool_name', 'arguments']:
+                                    print(f"  {attr}: {val}", flush=True)
+                                    structured[attr] = val
+                    
                     # Always include a raw repr as a fallback
-                    structured['raw'] = repr(d)
+                    structured['raw'] = repr(d)[:500]  # Truncate for readability
                     print("  Tool event data:\n" + json.dumps(structured, default=lambda o: str(o), indent=2), flush=True)
                 except Exception as ex:
                     print(f"  Failed to format tool event data: {ex}", flush=True)

@@ -10,7 +10,10 @@ def send_email_handler(args):
         return {"status": "error", "message": "No recipients provided."}
 
     output = f"[EMAIL OUTPUT FROM TOOL]\nTo: {', '.join(recipients)}\nSubject: {subject}\n\n{body}"
-    print(output)
+    print(output, flush=True)
+    print(f"\n{'='*60}", flush=True)
+    print("send_email tool executed successfully", flush=True)
+    print(f"{'='*60}\n", flush=True)
 
     # Return structured fields so MCP/tool events include the email body
     return {
