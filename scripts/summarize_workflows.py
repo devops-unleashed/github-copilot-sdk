@@ -50,23 +50,28 @@ async def main():
             # Try to detect tool-related events
             print(f"[TOOL EVENT DETECTED: {event_type}]", flush=True)
             if hasattr(event, 'data'):
-                if hasattr(event.data, 'tool_name'):
-                    print(f"  Tool: {event.data.tool_name}", flush=True)
-                    # Special handling for send_email tool
-                    if event.data.tool_name == "send_email":
-                        print(f"  [send_email TOOL INVOKED]", flush=True)
-                if hasattr(event.data, 'arguments'):
-                    print(f"  Arguments: {json.dumps(event.data.arguments, indent=2)}", flush=True)
-                # Capture tool results - try all possible fields
-                if hasattr(event.data, 'result'):
-                    print(f"  Result: {event.data.result}", flush=True)
-                if hasattr(event.data, 'output'):
-                    print(f"  Output: {event.data.output}", flush=True)
-                if hasattr(event.data, 'success'):
-                    print(f"  Success: {event.data.success}", flush=True)
-                # Show full data for tool events
-                if event_type in ["tool.execution_complete", "tool.execution_partial_result"]:
-                    print(f"  Full event data: {event.data}", flush=True)
+                # Build a structured view of the tool event so output is easy to read in logs
+                try:
+                    d = event.data
+                    structured = {}
+                    if hasattr(d, 'tool_name'):
+                        structured['tool_name'] = d.tool_name
+                        if d.tool_name == "send_email":
+                            structured['note'] = '[send_email TOOL INVOKED]'
+                    if hasattr(d, 'arguments'):
+                        structured['arguments'] = d.arguments
+                    if hasattr(d, 'result'):
+                        structured['result'] = d.result
+                    if hasattr(d, 'output'):
+                        structured['output'] = d.output
+                    if hasattr(d, 'success'):
+                        structured['success'] = d.success
+                    # Always include a raw repr as a fallback
+                    structured['raw'] = repr(d)
+                    print("  Tool event data:\n" + json.dumps(structured, default=lambda o: str(o), indent=2), flush=True)
+                except Exception as ex:
+                    print(f"  Failed to format tool event data: {ex}", flush=True)
+                    print(f"  Raw data: {event.data}", flush=True)
         elif event_type not in ["pending_messages.modified"]:
             # Log other event types (skip the noisy pending_messages ones)
             print(f"  Event type: {event_type}", flush=True)
